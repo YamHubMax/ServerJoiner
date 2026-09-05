@@ -1,0 +1,321 @@
+-- Roblox Executor Script: Target Player Count Server Joiner (Adjusted Button Position)
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+
+local LocalPlayer = Players.LocalPlayer
+local PlaceId = game.PlaceId
+
+-- Prevent duplicate UI execution
+if CoreGui:FindFirstChild("SoloServerExecutorGui") then
+CoreGui.SoloServerExecutorGui:Destroy()
+end
+
+-- ScreenGui Parented to CoreGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SoloServerExecutorGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = CoreGui
+
+───
+
+-- NON-DRAGGABLE SQUARE TOGGLE BUTTON (HIGHER & MOVED LEFT)
+local ToggleButtonFrame = Instance.new("Frame")
+ToggleButtonFrame.Name = "ToggleButtonFrame"
+ToggleButtonFrame.Size = UDim2.new(0, 45, 0, 45)
+-- Positioned higher (0.08) and further left (15px from edge)
+ToggleButtonFrame.Position = UDim2.new(0, 15, 0.08, 0)
+ToggleButtonFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+ToggleButtonFrame.BorderSizePixel = 0
+ToggleButtonFrame.Active = true
+ToggleButtonFrame.Draggable = false
+ToggleButtonFrame.Parent = ScreenGui
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(0, 10)
+ToggleCorner.Parent = ToggleButtonFrame
+
+local ToggleStroke = Instance.new("UIStroke")
+ToggleStroke.Thickness = 1.5
+ToggleStroke.Color = Color3.fromRGB(212, 175, 55)
+ToggleStroke.Parent = ToggleButtonFrame
+
+local ToggleIconButton = Instance.new("ImageButton")
+ToggleIconButton.Name = "ToggleIcon"
+ToggleIconButton.Size = UDim2.new(0, 27, 0, 27)
+ToggleIconButton.Position = UDim2.new(0.5, -13, 0.5, -13)
+ToggleIconButton.BackgroundTransparency = 1
+ToggleIconButton.Image = "rbxassetid://6034287525"
+ToggleIconButton.ImageColor3 = Color3.fromRGB(255, 215, 0)
+ToggleIconButton.Parent = ToggleButtonFrame
+
+───
+
+-- MAIN PANEL FRAME (GOLD OUTLINE, DRAGGABLE)
+local DefaultPosition = UDim2.new(0.58, 0, 0.12, 0)
+local DefaultSize = UDim2.new(0, 240, 0, 120)
+local HiddenSize = UDim2.new(0, 200, 0, 100)
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = DefaultSize
+MainFrame.Position = DefaultPosition
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 26)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local MainUICorner = Instance.new("UICorner")
+MainUICorner.CornerRadius = UDim.new(0, 12)
+MainUICorner.Parent = MainFrame
+
+local MainUIStroke = Instance.new("UIStroke")
+MainUIStroke.Thickness = 1.2
+MainUIStroke.Color = Color3.fromRGB(212, 175, 55)
+MainUIStroke.Transparency = 0
+MainUIStroke.Parent = MainFrame
+
+───
+
+-- SMOOTH TEXT BOX
+local InputBox = Instance.new("TextBox")
+InputBox.Name = "InputBox"
+InputBox.Size = UDim2.new(0.88, 0, 0.34, 0)
+InputBox.Position = UDim2.new(0.06, 0, 0.12, 0)
+InputBox.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+InputBox.PlaceholderText = "Target Player"
+InputBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 140)
+InputBox.Text = ""
+InputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+InputBox.TextSize = 13
+InputBox.Font = Enum.Font.GothamMedium
+InputBox.ClearTextOnFocus = false
+InputBox.BorderSizePixel = 0
+InputBox.Parent = MainFrame
+
+local InputCorner = Instance.new("UICorner")
+InputCorner.CornerRadius = UDim.new(0, 8)
+InputCorner.Parent = InputBox
+
+local InputStroke = Instance.new("UIStroke")
+InputStroke.Thickness = 1
+InputStroke.Color = Color3.fromRGB(55, 55, 75)
+InputStroke.Parent = InputBox
+
+───
+
+-- JOIN BUTTON
+local SoloButton = Instance.new("TextButton")
+SoloButton.Name = "SoloButton"
+SoloButton.Size = UDim2.new(0.88, 0, 0.40, 0)
+SoloButton.Position = UDim2.new(0.06, 0, 0.50, 0)
+SoloButton.BackgroundColor3 = Color3.fromRGB(0, 122, 255)
+SoloButton.Text = "Join Server"
+SoloButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+SoloButton.TextSize = 14
+SoloButton.Font = Enum.Font.GothamBold
+SoloButton.AutoButtonColor = false
+SoloButton.BorderSizePixel = 0
+SoloButton.Parent = MainFrame
+
+local ButtonCorner = Instance.new("UICorner")
+ButtonCorner.CornerRadius = UDim.new(0, 8)
+ButtonCorner.Parent = SoloButton
+
+───
+
+-- HOVER & CLICK ANIMATIONS
+local buttonTweenInfo = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local normalColor = Color3.fromRGB(0, 122, 255)
+local hoverColor = Color3.fromRGB(40, 150, 255)
+local clickColor = Color3.fromRGB(0, 90, 200)
+
+InputBox.Focused:Connect(function()
+TweenService:Create(InputStroke, buttonTweenInfo, { Color = Color3.fromRGB(212, 175, 55) }):Play()
+end)
+
+InputBox.FocusLost:Connect(function()
+TweenService:Create(InputStroke, buttonTweenInfo, { Color = Color3.fromRGB(55, 55, 75) }):Play()
+end)
+
+SoloButton.MouseEnter:Connect(function()
+TweenService:Create(SoloButton, buttonTweenInfo, {
+BackgroundColor3 = hoverColor,
+Size = UDim2.new(0.90, 0, 0.42, 0),
+Position = UDim2.new(0.05, 0, 0.49, 0)
+}):Play()
+end)
+
+SoloButton.MouseLeave:Connect(function()
+TweenService:Create(SoloButton, buttonTweenInfo, {
+BackgroundColor3 = normalColor,
+Size = UDim2.new(0.88, 0, 0.40, 0),
+Position = UDim2.new(0.06, 0, 0.50, 0)
+}):Play()
+end)
+
+SoloButton.MouseButton1Down:Connect(function()
+TweenService:Create(SoloButton, TweenInfo.new(0.08), {
+BackgroundColor3 = clickColor,
+Size = UDim2.new(0.84, 0, 0.37, 0),
+Position = UDim2.new(0.08, 0, 0.51, 0)
+}):Play()
+end)
+
+SoloButton.MouseButton1Up:Connect(function()
+TweenService:Create(SoloButton, TweenInfo.new(0.08), {
+BackgroundColor3 = hoverColor,
+Size = UDim2.new(0.90, 0, 0.42, 0),
+Position = UDim2.new(0.05, 0, 0.49, 0)
+}):Play()
+end)
+
+ToggleIconButton.MouseEnter:Connect(function()
+TweenService:Create(ToggleButtonFrame, buttonTweenInfo, { BackgroundColor3 = Color3.fromRGB(35, 35, 45) }):Play()
+TweenService:Create(ToggleIconButton, buttonTweenInfo, { ImageColor3 = Color3.fromRGB(255, 255, 255) }):Play()
+end)
+
+ToggleIconButton.MouseLeave:Connect(function()
+TweenService:Create(ToggleButtonFrame, buttonTweenInfo, { BackgroundColor3 = Color3.fromRGB(25, 25, 32) }):Play()
+TweenService:Create(ToggleIconButton, buttonTweenInfo, { ImageColor3 = Color3.fromRGB(255, 215, 0) }):Play()
+end)
+
+───
+
+-- SMOOTH OPEN & CLOSE ANIMATION LOGIC
+local uiVisible = true
+local openTweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+local closeTweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+local isAnimating = false
+
+local function ToggleUI()
+if isAnimating then return end
+isAnimating = true
+uiVisible = not uiVisible
+
+if uiVisible then
+MainFrame.Visible = true
+TweenService:Create(MainFrame, openTweenInfo, {
+BackgroundTransparency = 0,
+Size = DefaultSize
+}):Play()
+TweenService:Create(MainUIStroke, openTweenInfo, { Transparency = 0 }):Play()
+TweenService:Create(InputBox, openTweenInfo, { BackgroundTransparency = 0, TextTransparency = 0 }):Play()
+TweenService:Create(InputStroke, openTweenInfo, { Transparency = 0 }):Play()
+TweenService:Create(SoloButton, openTweenInfo, { BackgroundTransparency = 0, TextTransparency = 0 }):Play()
+
+task.wait(0.3)
+isAnimating = false
+else
+TweenService:Create(MainFrame, closeTweenInfo, {
+BackgroundTransparency = 1,
+Size = HiddenSize
+}):Play()
+TweenService:Create(MainUIStroke, closeTweenInfo, { Transparency = 1 }):Play()
+TweenService:Create(InputBox, closeTweenInfo, { BackgroundTransparency = 1, TextTransparency = 1 }):Play()
+TweenService:Create(InputStroke, closeTweenInfo, { Transparency = 1 }):Play()
+TweenService:Create(SoloButton, closeTweenInfo, { BackgroundTransparency = 1, TextTransparency = 1 }):Play()
+
+task.wait(0.2)
+MainFrame.Visible = false
+isAnimating = false
+end
+end
+
+ToggleIconButton.MouseButton1Click:Connect(ToggleUI)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+if gameProcessed then return end
+if input.KeyCode == Enum.KeyCode.RightControl or input.KeyCode == Enum.KeyCode.Insert then
+ToggleUI()
+end
+end)
+
+───
+
+-- SERVER SEARCH & JOIN LOGIC
+local isSearching = false
+
+local function FindAndJoinServer()
+if isSearching then return end
+isSearching = true
+SoloButton.Text = "Searching..."
+
+local requestedNum = tonumber(InputBox.Text)
+local targetPlayers = nil
+
+if requestedNum then
+if requestedNum > 6 then
+targetPlayers = nil
+else
+targetPlayers = math.clamp(math.floor(requestedNum), 0, 6)
+end
+end
+
+local targetServerId = nil
+local closestPlayerCount = math.huge
+local cursor = ""
+
+for _ = 1, 4 do
+local requestUrl = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/0?sortOrder=Asc&limit=100"
+if cursor ~= "" then
+requestUrl = requestUrl .. "&cursor=" .. cursor
+end
+
+local success, response = pcall(function()
+return game:HttpGet(requestUrl)
+end)
+
+if success and response then
+local data = HttpService:JSONDecode(response)
+if data and data.data then
+for _, server in ipairs(data.data) do
+if server.playing and server.playing < server.maxPlayers and server.id ~= game.JobId then
+if targetPlayers then
+if server.playing == targetPlayers then
+targetServerId = server.id
+break
+elseif server.playing < closestPlayerCount then
+closestPlayerCount = server.playing
+targetServerId = server.id
+end
+else
+if server.playing < closestPlayerCount then
+closestPlayerCount = server.playing
+targetServerId = server.id
+end
+end
+end
+end
+end
+
+if targetServerId and targetPlayers and closestPlayerCount == targetPlayers then
+break
+end
+
+if data and data.nextPageCursor then
+cursor = data.nextPageCursor
+else
+break
+end
+else
+break
+end
+end
+
+if targetServerId then
+SoloButton.Text = "Teleporting..."
+TeleportService:TeleportToPlaceInstance(PlaceId, targetServerId, LocalPlayer)
+else
+SoloButton.Text = "No Server Found"
+task.wait(2)
+SoloButton.Text = "Join Server"
+isSearching = false
+end
+end
+
+SoloButton.MouseButton1Click:Connect(FindAndJoinServer)
